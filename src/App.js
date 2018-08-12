@@ -1,19 +1,35 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
+import SplitPane from 'react-split-pane';
+
 import './App.css';
+import { Editor, Viewer } from './components';
 
 class App extends Component {
+  state = {
+    src: '# Hello world',
+  };
+
+  onMarkdownChange = this.onMarkdownChange.bind(this);
+
+  onMarkdownChange(md) {
+    this.setState({
+      src: md,
+    });
+  }
+
   render() {
+    const { src } = this.state;
     return (
       <div className="App">
         <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h1 className="App-title">Welcome to React</h1>
+          <p className="App-title">Md Editor</p>
         </header>
-        <p className="App-intro">
-          To get started, edit <code>src/App.js</code>
-          and save to reload.
-        </p>
+        <div className="App-main">
+          <SplitPane split="vertical" defaultSize="50%">
+            <Editor src={src} onChangeSrc={this.onMarkdownChange} />
+            <Viewer src={src} />
+          </SplitPane>
+        </div>
       </div>
     );
   }
