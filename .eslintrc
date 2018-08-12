@@ -1,0 +1,25 @@
+extends:
+  - airbnb
+  - prettier
+env:
+  browser: true
+  jest: true
+parser: babel-eslint
+plugins:
+  - eslint-comments
+  - jsx-a11y
+  - react
+  - prettier
+rules:
+  prettier/prettier:
+    - 2
+    -
+      semi: true
+      singleQuote: true
+      trailingComma: "all"
+  react/jsx-filename-extension: [1, { "extensions": [".js", ".jsx"] }]
+  # ref: https://github.com/mysticatea/eslint-plugin-eslint-comments
+  eslint-comments/no-unused-disable: 2
+  eslint-comments/no-unused-enable: 2
+  react/prefer-stateless-function: 0
+  react/jsx-one-expression-per-line: 0
