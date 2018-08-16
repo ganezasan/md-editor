@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { UnControlled as CodeMirror } from 'react-codemirror2';
+import * as codemirror from 'codemirror';
+import { Controlled as CodeMirror } from 'react-codemirror2';
 
 require('codemirror/addon/hint/show-hint');
 require('codemirror/addon/hint/show-hint.css');
@@ -10,22 +11,29 @@ const hintRender = (elt, data, cur) => {
   const url =
     'https://assets-cdn.github.com/images/icons/emoji/unicode/1f44d.png?v8';
   const displayNode = `<img width="15" height="15" src="${url}" alt="icon" async></img> ${
-    cur.text
+    cur.displayText
   }`;
   elt.innerHTML = displayNode;
   elt.hintId = cur.i;
   return elt;
 };
 
-const emojiList = ['apple', 'abc', 'axz', 'bee', 'beam', 'bleach'].map(
-  (key, i) => ({
-    text: `${key}:`,
-    className: 'emoji',
+const makeHintLists = (target, list, makeText, makeDisplayText, className) => {
+  console.log(list);
+  console.log(target);
+
+  return list.filter(l => l.indexOf(target) !== -1).map((key, i) => ({
+    text: makeText(key),
+    displayText: makeDisplayText(key),
+    className,
     i,
     render: hintRender,
-  }),
-);
+  }));
+};
 
+const emojiList = ['apple', 'abc', 'axz', 'bee', 'beam', 'bleach'].map(
+  key => `:${key}: `,
+);
 const mentionList = [
   'taka',
   'koyo',
@@ -33,36 +41,58 @@ const mentionList = [
   'tanaka',
   'tachibana',
   'takashi',
-].map((key, i) => ({
-  text: key,
-  className: 'mention',
-  i,
-  render: hintRender,
-}));
-
-const getHint = (editor, list) => ({
-  hint: () => ({
-    from: editor.getDoc().getCursor(),
-    to: editor.getDoc().getCursor(),
-    list,
-  }),
-  closeCharacters: /[\s()\[\]{};>,]/,
-  completeSingle: false,
-});
+].map(key => `@${key} `); // 最後にスペース入れることで、選択が終わりというのが表現できている
 
 class Editor extends Component {
-  handleKeyDown(editor, target) {
-    if (target.key === '@') {
-      const options = getHint(editor, mentionList);
-      editor.showHint(options);
-    } else if (target.key === ':') {
-      const options = getHint(editor, emojiList);
-      editor.showHint(options);
-    }
-  }
+  state = {
+    value: this.props.src,
+  };
+
+  autoComplete = cm => {
+    cm.showHint({
+      hint: editor => {
+        const cur = cm.getCursor();
+        const token = cm.getTokenAt(cur);
+        const start = token.start;
+        const end = token.ch;
+
+        if (token.string.indexOf('@') === 0) {
+          const list = makeHintLists(
+            token.string,
+            mentionList,
+            key => `${key}`,
+            key => `${key.slice(1)}`,
+            'menthionList',
+          );
+
+          return {
+            list,
+            from: codemirror.Pos(cur.line, start),
+            to: codemirror.Pos(cur.line, end),
+          };
+        }
+        if (token.string.indexOf(':') === 0) {
+          const list = makeHintLists(
+            token.string,
+            emojiList,
+            key => `${key}`,
+            key => `${key}`,
+            'emojiList',
+          );
+          return {
+            list,
+            from: codemirror.Pos(cur.line, start),
+            to: codemirror.Pos(cur.line, end),
+          };
+        }
+      },
+      completeSingle: false,
+      closeCharacters: /[\s()\[\]{};>,]/, // eslint-disable-line no-useless-escape
+    });
+  };
 
   render() {
-    const { src, onChangeSrc } = this.props;
+    const { onChangeSrc } = this.props;
     const options = {
       mode: 'markdown',
       theme: 'material',
@@ -75,11 +105,16 @@ class Editor extends Component {
     return (
       <CodeMirror
         ref="CodeMirror"
-        value={src}
+        value={this.state.value}
         options={options}
         className="editor-pane"
         height="100%"
-        onKeyDown={this.handleKeyDown}
+        onBeforeChange={(editor, data, value) => {
+          this.autoComplete(editor);
+          this.setState({
+            value,
+          });
+        }}
         onChange={(editor, target, value) => {
           onChangeSrc(value);
         }}
