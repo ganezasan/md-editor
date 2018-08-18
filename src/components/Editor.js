@@ -83,6 +83,8 @@ class Editor extends Component {
         }
       },
       completeSingle: false,
+      closeCharacters: /[\s()\[\]{};>,]/, // eslint-disable-line no-useless-escape
+      completeOnSingleClick: false,
     });
   };
 

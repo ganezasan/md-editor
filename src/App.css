@@ -8,9 +8,15 @@
 
 .App-main {
   flex: auto;
+  display: flex;
   justify-content: center;
   align-items: center;
-  height: calc(100vh - 50px);
+  margin-top: 20px;
+}
+
+.editor-box {
+  width: 700px;
+  height: 600px;
 }
 
 .App-title {
