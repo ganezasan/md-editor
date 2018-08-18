@@ -18,21 +18,17 @@ const hintRender = (elt, data, cur) => {
   return elt;
 };
 
-const makeHintLists = (target, list, makeText, makeDisplayText, className) => {
-  console.log(list);
-  console.log(target);
-
-  return list.filter(l => l.indexOf(target) !== -1).map((key, i) => ({
+const makeHintLists = (target, list, makeText, makeDisplayText, className) =>
+  list.filter(l => l.indexOf(target) !== -1).map((key, i) => ({
     text: makeText(key),
     displayText: makeDisplayText(key),
     className,
     i,
     render: hintRender,
   }));
-};
 
 const emojiList = ['apple', 'abc', 'axz', 'bee', 'beam', 'bleach'].map(
-  key => `:${key}: `,
+  key => `${key}: `,
 );
 const mentionList = [
   'taka',
@@ -41,7 +37,7 @@ const mentionList = [
   'tanaka',
   'tachibana',
   'takashi',
-].map(key => `@${key} `); // 最後にスペース入れることで、選択が終わりというのが表現できている
+].map(key => `${key} `); // 最後にスペース入れることで、選択が終わりというのが表現できている
 
 class Editor extends Component {
   state = {
@@ -50,7 +46,7 @@ class Editor extends Component {
 
   autoComplete = cm => {
     cm.showHint({
-      hint: editor => {
+      hint: () => {
         const cur = cm.getCursor();
         const token = cm.getTokenAt(cur);
         const start = token.start;
@@ -58,10 +54,10 @@ class Editor extends Component {
 
         if (token.string.indexOf('@') === 0) {
           const list = makeHintLists(
-            token.string,
+            token.string.slice(1),
             mentionList,
+            key => `@${key}`,
             key => `${key}`,
-            key => `${key.slice(1)}`,
             'menthionList',
           );
 
@@ -73,10 +69,10 @@ class Editor extends Component {
         }
         if (token.string.indexOf(':') === 0) {
           const list = makeHintLists(
-            token.string,
+            token.string.slice(1),
             emojiList,
-            key => `${key}`,
-            key => `${key}`,
+            key => `:${key}`,
+            key => `:${key}`,
             'emojiList',
           );
           return {
@@ -87,19 +83,16 @@ class Editor extends Component {
         }
       },
       completeSingle: false,
-      closeCharacters: /[\s()\[\]{};>,]/, // eslint-disable-line no-useless-escape
     });
   };
 
   render() {
     const { onChangeSrc } = this.props;
     const options = {
-      mode: 'markdown',
+      mode: 'gfm',
       theme: 'material',
       lineNumbers: true,
       lineWrapping: true,
-      completeSingle: false,
-      completeOnSingleClick: false,
     };
 
     return (
