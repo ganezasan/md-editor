@@ -8,7 +8,8 @@ import { getList } from '../redux/emoji/selectors';
 
 require('codemirror/addon/hint/show-hint');
 require('codemirror/addon/hint/show-hint.css');
-require('codemirror/mode/markdown/markdown'); // without this css hints won't show
+require('codemirror/mode/gfm/gfm'); // without this css hints won't show
+require('codemirror/addon/search/searchcursor');
 
 const hintRender = (elt, data, cur) => {
   const displayNode = `<img width="15" height="15" src="${
@@ -44,7 +45,11 @@ const mentionList = [
   'tanaka',
   'tachibana',
   'takashi',
-].map(key => `${key} `); // 最後にスペース入れることで、選択が終わりというのが表現できている
+].reduce((keyValue, key) => {
+  keyValue[key] =
+    'https://github.global.ssl.fastly.net/images/icons/emoji/+1.png?v5';
+  return keyValue;
+}, {});
 
 class Editor extends Component {
   state = {
@@ -54,45 +59,86 @@ class Editor extends Component {
   autoComplete = cm => {
     cm.showHint({
       hint: () => {
-        const cur = cm.getCursor();
-        const token = cm.getTokenAt(cur);
-        const start = token.start;
-        const end = token.ch;
+        const pattern = /@[A-Za-z0-9]*$/;
 
-        if (token.string.indexOf('@') === 0) {
-          const list = makeHintLists(
-            token.string.slice(1),
-            mentionList,
-            key => `@${key}`,
-            key => `${key}`,
-            'menthionList',
-          );
+        const currentPos = cm.getCursor();
+        const sc = cm.getSearchCursor(pattern, currentPos, {
+          multiline: false,
+        });
 
-          return {
-            list,
-            from: codemirror.Pos(cur.line, start),
-            to: codemirror.Pos(cur.line, end),
-          };
+        if (sc.findPrevious()) {
+          const isInputtingEmoji =
+            currentPos.line === sc.to().line && currentPos.ch === sc.to().ch;
+          if (!isInputtingEmoji) {
+            return;
+          }
+        } else {
+          return;
         }
-        if (token.string.indexOf(':') === 0) {
-          const list = makeHintLists(
-            token.string.slice(1),
-            makeEmojiList(this.props.emojiList),
-            key => `:${key}: `,
-            key => `:${key}: `,
-            'emojiList',
-            this.props.emojiList,
-          );
-          return {
-            list,
-            from: codemirror.Pos(cur.line, start),
-            to: codemirror.Pos(cur.line, end),
-          };
-        }
+
+        const matched = cm.getDoc().getRange(sc.from(), sc.to());
+        const term = matched.replace('@', ''); // remove '@' in the head
+
+        const list = Object.keys(mentionList)
+          .filter(l => l.indexOf(term) !== -1)
+          .map((key, i) => ({
+            text: `@${key} `,
+            displayText: `${key}`,
+            className: ['mention'],
+            i,
+            render: hintRender,
+            url: mentionList[key],
+          }));
+
+        return {
+          list,
+          from: sc.from(),
+          to: sc.to(),
+        };
+
+        // const cur = cm.getCursor();
+        // const token = cm.getTokenAt(cur);
+        // const start = token.start;
+        // const end = token.ch;
+        //
+        // console.log(cur);
+        // console.log(token);
+        // if (token.string.indexOf('@') === 0) {
+        //   const list = makeHintLists(
+        //     token.string.slice(1),
+        //     Object.keys(mentionList).map(key => `${key}`),
+        //     key => `@${key} `,
+        //     key => `${key}`,
+        //     'menthionList',
+        //     mentionList,
+        //   );
+        //
+        //   return {
+        //     list,
+        //     from: codemirror.Pos(cur.line, start),
+        //     to: codemirror.Pos(cur.line, end),
+        //   };
+        // }
+        // if (token.string.indexOf(':') === 0) {
+        //   const list = makeHintLists(
+        //     token.string.slice(1),
+        //     makeEmojiList(this.props.emojiList),
+        //     key => `:${key}: `,
+        //     key => `:${key}: `,
+        //     'emojiList',
+        //     this.props.emojiList,
+        //   );
+        //   return {
+        //     list,
+        //     from: codemirror.Pos(cur.line, start),
+        //     to: codemirror.Pos(cur.line, end),
+        //   };
+        // }
       },
+      disableKeywords: false,
       completeSingle: false,
-      closeCharacters: /[\s()\[\]{};>,]/, // eslint-disable-line no-useless-escape
       completeOnSingleClick: false,
+      closeCharacters: /[\s()\[\]{};>,]/, // eslint-disable-line no-useless-escape
     });
   };
 
@@ -103,6 +149,8 @@ class Editor extends Component {
       theme: 'material',
       lineNumbers: true,
       lineWrapping: true,
+      closeCharacters: /[\s()\[\]{};>,]/, // eslint-disable-line no-useless-escape
+      emoji: true,
     };
 
     return (
