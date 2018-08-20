@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
-import { Provider } from 'react-redux';
+import { Provider, connect } from 'react-redux';
 import SplitPane from 'react-split-pane';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import { load } from './redux/emoji/actions';
 
 import './App.css';
 import { Editor, Viewer } from './components';
@@ -11,6 +12,10 @@ class App extends Component {
   state = {
     src: '# Hello world',
   };
+
+  componentDidMount() {
+    this.props.load();
+  }
 
   onMarkdownChange = this.onMarkdownChange.bind(this);
 
@@ -86,4 +91,11 @@ class App extends Component {
   }
 }
 
-export default App;
+const mapDispatchToProps = {
+  load,
+};
+
+export default connect(
+  null,
+  mapDispatchToProps,
+)(App);
