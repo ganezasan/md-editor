@@ -2,34 +2,41 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import * as codemirror from 'codemirror';
 import { Controlled as CodeMirror } from 'react-codemirror2';
+import { createStructuredSelector } from 'reselect';
+import { connect } from 'react-redux';
+import { getList } from '../redux/emoji/selectors';
 
 require('codemirror/addon/hint/show-hint');
 require('codemirror/addon/hint/show-hint.css');
 require('codemirror/mode/markdown/markdown'); // without this css hints won't show
 
 const hintRender = (elt, data, cur) => {
-  const url =
-    'https://assets-cdn.github.com/images/icons/emoji/unicode/1f44d.png?v8';
-  const displayNode = `<img width="15" height="15" src="${url}" alt="icon" async></img> ${
-    cur.displayText
-  }`;
+  const displayNode = `<img width="15" height="15" src="${
+    cur.url
+  }" alt="icon" async></img> ${cur.displayText}`;
   elt.innerHTML = displayNode;
   elt.hintId = cur.i;
   return elt;
 };
 
-const makeHintLists = (target, list, makeText, makeDisplayText, className) =>
+const makeHintLists = (
+  target,
+  list,
+  makeText,
+  makeDisplayText,
+  className,
+  original,
+) =>
   list.filter(l => l.indexOf(target) !== -1).map((key, i) => ({
     text: makeText(key),
     displayText: makeDisplayText(key),
     className,
     i,
     render: hintRender,
+    url: original[key],
   }));
 
-const emojiList = ['apple', 'abc', 'axz', 'bee', 'beam', 'bleach'].map(
-  key => `${key}: `,
-);
+const makeEmojiList = list => Object.keys(list).map(key => `${key}`);
 const mentionList = [
   'taka',
   'koyo',
@@ -70,10 +77,11 @@ class Editor extends Component {
         if (token.string.indexOf(':') === 0) {
           const list = makeHintLists(
             token.string.slice(1),
-            emojiList,
-            key => `:${key}`,
-            key => `:${key}`,
+            makeEmojiList(this.props.emojiList),
+            key => `:${key}: `,
+            key => `:${key}: `,
             'emojiList',
+            this.props.emojiList,
           );
           return {
             list,
@@ -123,4 +131,11 @@ Editor.propTypes = {
   onChangeSrc: PropTypes.func,
 };
 
-export default Editor;
+const mapStateToProps = createStructuredSelector({
+  emojiList: getList,
+});
+
+export default connect(
+  mapStateToProps,
+  null,
+)(Editor);
